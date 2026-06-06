@@ -1,0 +1,569 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Study Time Tracker - Track Your Learning Journey{% endblock %}
+
+{% block content %}
+<style>
+    .landing-hero {
+        min-height: calc(100vh - 70px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4rem 2rem;
+        background: linear-gradient(135deg, #f9fafb 0%, #e5e7eb 100%);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .landing-hero::before {
+        content: '';
+        position: absolute;
+        width: 600px;
+        height: 600px;
+        background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+        top: -200px;
+        right: -200px;
+        animation: float 8s ease-in-out infinite;
+    }
+    
+    .landing-hero::after {
+        content: '';
+        position: absolute;
+        width: 500px;
+        height: 500px;
+        background: radial-gradient(circle, rgba(245, 158, 11, 0.1) 0%, transparent 70%);
+        bottom: -200px;
+        left: -200px;
+        animation: float 10s ease-in-out infinite;
+        animation-delay: 2s;
+    }
+    
+    .hero-content {
+        text-align: center;
+        max-width: 800px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: var(--primary-glow);
+        color: var(--primary-color);
+        border-radius: var(--radius-full);
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        animation: fadeInDown 0.6s ease-out;
+    }
+    
+    .hero-title {
+        font-size: 3.5rem;
+        font-weight: 800;
+        color: var(--gray-900);
+        margin-bottom: 1.5rem;
+        line-height: 1.1;
+        animation: fadeInUp 0.6s ease-out 0.1s both;
+    }
+    
+    .hero-title span {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .hero-description {
+        font-size: 1.25rem;
+        color: var(--gray-600);
+        margin-bottom: 2.5rem;
+        line-height: 1.6;
+        animation: fadeInUp 0.6s ease-out 0.2s both;
+    }
+    
+    .hero-cta {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-bottom: 3rem;
+        animation: fadeInUp 0.6s ease-out 0.3s both;
+    }
+    
+    .hero-stats {
+        display: flex;
+        gap: 3rem;
+        justify-content: center;
+        animation: fadeInUp 0.6s ease-out 0.4s both;
+    }
+    
+    .hero-stat {
+        text-align: center;
+    }
+    
+    .hero-stat-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+    
+    .hero-stat-label {
+        font-size: 0.875rem;
+        color: var(--gray-500);
+        margin-top: 0.25rem;
+    }
+    
+    .hero-illustration {
+        margin-top: 3rem;
+        animation: fadeInUp 0.6s ease-out 0.5s both;
+    }
+    
+    .hero-illustration img {
+        max-width: 100%;
+        height: auto;
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-xl);
+    }
+    
+    /* Features Section */
+    .features-section {
+        padding: 6rem 2rem;
+        background: var(--bg-primary);
+    }
+    
+    .section-header {
+        text-align: center;
+        margin-bottom: 4rem;
+    }
+    
+    .section-label {
+        display: inline-block;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 0.5rem;
+    }
+    
+    .section-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin-bottom: 1rem;
+    }
+    
+    .section-description {
+        font-size: 1.125rem;
+        color: var(--gray-600);
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .feature-card {
+        background: var(--bg-secondary);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        text-align: center;
+        transition: all var(--transition-normal);
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-10px);
+        box-shadow: var(--shadow-xl);
+    }
+    
+    .feature-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 1.5rem;
+        background: var(--primary-glow);
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: var(--primary-color);
+    }
+    
+    .feature-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin-bottom: 0.75rem;
+    }
+    
+    .feature-description {
+        color: var(--gray-600);
+        line-height: 1.6;
+    }
+    
+    /* How it works */
+    .how-it-works {
+        padding: 6rem 2rem;
+        background: var(--bg-secondary);
+    }
+    
+    .steps-container {
+        display: flex;
+        gap: 3rem;
+        max-width: 1000px;
+        margin: 0 auto;
+        position: relative;
+    }
+    
+    .steps-container::before {
+        content: '';
+        position: absolute;
+        top: 40px;
+        left: 100px;
+        right: 100px;
+        height: 2px;
+        background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    }
+    
+    .step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .step-number {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 1.5rem;
+        background: var(--bg-primary);
+        border: 3px solid var(--primary-color);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .step-title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--gray-900);
+        margin-bottom: 0.5rem;
+    }
+    
+    .step-description {
+        color: var(--gray-600);
+        font-size: 0.95rem;
+    }
+    
+    /* CTA Section */
+    .cta-section {
+        padding: 6rem 2rem;
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        text-align: center;
+        color: white;
+    }
+    
+    .cta-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+    
+    .cta-description {
+        font-size: 1.25rem;
+        opacity: 0.9;
+        max-width: 600px;
+        margin: 0 auto 2rem;
+    }
+    
+    .cta-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 2.5rem;
+        background: white;
+        color: var(--primary-color);
+        border-radius: var(--radius-lg);
+        font-size: 1.125rem;
+        font-weight: 600;
+        transition: all var(--transition-normal);
+    }
+    
+    .cta-button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        text-decoration: none;
+    }
+    
+    @media (max-width: 768px) {
+        .hero-title {
+            font-size: 2.5rem;
+        }
+        
+        .hero-description {
+            font-size: 1rem;
+        }
+        
+        .hero-cta {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .hero-stats {
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .features-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .steps-container {
+            flex-direction: column;
+        }
+        
+        .steps-container::before {
+            display: none;
+        }
+    }
+</style>
+
+<!-- Hero Section -->
+<section class="landing-hero">
+    <div class="hero-content">
+        <div class="hero-badge">
+            <i class="fas fa-rocket"></i>
+            <span>Boost Your Productivity</span>
+        </div>
+        
+        <h1 class="hero-title">
+            Track Your <span>Study Time</span> Like a Pro
+        </h1>
+        
+        <p class="hero-description">
+            Stay focused, set goals, and visualize your progress with our powerful 
+            study tracking tools. Join thousands of students who are achieving more.
+        </p>
+        
+        <div class="hero-cta">
+            <a href="{% url 'tracker:register' %}" class="btn btn-primary btn-lg">
+                <i class="fas fa-start"></i>
+                Get Started Free
+            </a>
+            <a href="#features" class="btn btn-outline btn-lg" style="border-color: white; color: white;">
+                <i class="fas fa-play"></i>
+                See How It Works
+            </a>
+        </div>
+        
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <div class="hero-stat-value">10K+</div>
+                <div class="hero-stat-label">Active Users</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value">1M+</div>
+                <div class="hero-stat-label">Hours Tracked</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-value">50+</div>
+                <div class="hero-stat-label">Countries</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section" id="features">
+    <div class="section-header">
+        <span class="section-label">Features</span>
+        <h2 class="section-title">Everything You Need to Succeed</h2>
+        <p class="section-description">
+            Powerful tools designed to help you stay focused and achieve your academic goals.
+        </p>
+    </div>
+    
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <h3 class="feature-title">Time Tracking</h3>
+            <p class="feature-description">
+                Easily track your study sessions with one-click start/stop timer. 
+                Manual entry also available for past sessions.
+            </p>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h3 class="feature-title">Detailed Reports</h3>
+            <p class="feature-description">
+                Visualize your progress with beautiful charts and graphs. 
+                See trends over days, weeks, and months.
+            </p>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-bullseye"></i>
+            </div>
+            <h3 class="feature-title">Goal Setting</h3>
+            <p class="feature-description">
+                Set daily, weekly, or monthly study goals. Get notifications 
+                when you're close to achieving them.
+            </p>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-book"></i>
+            </div>
+            <h3 class="feature-title">Subject Management</h3>
+            <p class="feature-description">
+                Organize your study time by subjects. Track how much time 
+                you spend on each topic.
+            </p>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-trophy"></i>
+            </div>
+            <h3 class="feature-title">Achievements</h3>
+            <p class="feature-description">
+                Earn badges and rewards for consistency. Stay motivated 
+                with streaks and milestones.
+            </p>
+        </div>
+        
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-download"></i>
+            </div>
+            <h3 class="feature-title">Export Data</h3>
+            <p class="feature-description">
+                Download your study data as CSV or PDF reports. 
+                Perfect for reviewing your progress.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works -->
+<section class="how-it-works">
+    <div class="section-header">
+        <span class="section-label">How It Works</span>
+        <h2 class="section-title">Start in 3 Simple Steps</h2>
+        <p class="section-description">
+            Getting started is easy. You'll be tracking your study time in minutes.
+        </p>
+    </div>
+    
+    <div class="steps-container">
+        <div class="step">
+            <div class="step-number">1</div>
+            <h3 class="step-title">Create Account</h3>
+            <p class="step-description">
+                Sign up for free in seconds. No credit card required.
+            </p>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">2</div>
+            <h3 class="step-title">Add Subjects</h3>
+            <p class="step-description">
+                Create subjects for your courses or topics you're studying.
+            </p>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">3</div>
+            <h3 class="step-title">Start Tracking</h3>
+            <p class="step-description">
+                Hit start and focus on your studies. We'll handle the rest.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section">
+    <h2 class="cta-title">Ready to Boost Your Productivity?</h2>
+    <p class="cta-description">
+        Join thousands of students who are already tracking their study time 
+        and achieving better results.
+    </p>
+    <a href="{% url 'tracker:register' %}" class="cta-button">
+        <i class="fas fa-rocket"></i>
+        Start Tracking Now
+    </a>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <i class="fas fa-graduation-cap"></i>
+                <span>StudyTracker</span>
+            </div>
+            <p class="footer-text">
+                &copy; 2024 Study Time Tracker. Built with Django.
+            </p>
+        </div>
+    </div>
+</footer>
+
+<script>
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+    
+    // Animate stats on scroll
+    const observerOptions = {
+        threshold: 0.5
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const stats = entry.target.querySelectorAll('.hero-stat-value');
+                stats.forEach(stat => {
+                    const value = stat.textContent;
+                    if (value.includes('K')) {
+                        stat.style.animation = 'countUp 0.8s ease-out';
+                    }
+                });
+                observer.unobserve(entry.target);
+            }
+        });
+    }, observerOptions);
+    
+    observer.observe(document.querySelector('.hero-stats'));
+</script>
+{% endblock %}

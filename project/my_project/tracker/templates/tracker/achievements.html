@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Achievements - Study Time Tracker{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="page-title mb-4">Achievements</h1>
+    
+    <!-- Earned Achievements -->
+    {% if user_achievements %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-trophy" style="color: var(--warning-color);"></i>
+                Earned Achievements
+                <span class="badge badge-primary" style="margin-left: 0.5rem;">{{ user_achievements.count }}</span>
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="achievements-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">
+                {% for user_achievement in user_achievements %}
+                <div class="achievement-card" style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: var(--gray-50); border-radius: 0.75rem; border-left: 4px solid var(--warning-color);">
+                    <span style="font-size: 2.5rem;">{{ user_achievement.achievement.icon }}</span>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; font-size: 1rem; margin-bottom: 0.25rem;">{{ user_achievement.achievement.name }}</div>
+                        <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.5rem;">
+                            {{ user_achievement.achievement.description }}
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--gray-500);">
+                            <i class="fas fa-calendar-check"></i>
+                            Earned {{ user_achievement.earned_at|date:"M d, Y" }}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- All Available Achievements -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Available Achievements</h3>
+        </div>
+        <div class="card-body">
+            <div class="achievements-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem;">
+                {% for achievement in all_achievements %}
+                <div class="achievement-card" style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--gray-50); border-radius: 0.5rem; opacity: 0.6;">
+                    <span style="font-size: 2rem;">{{ achievement.icon }}</span>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; font-size: 0.875rem;">{{ achievement.name }}</div>
+                        <div style="font-size: 0.75rem; color: var(--gray-600);">
+                            {{ achievement.description|truncatechars:50 }}
+                        </div>
+                        <div style="font-size: 0.7rem; color: var(--gray-500); margin-top: 0.25rem;">
+                            {{ achievement.points }} points
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

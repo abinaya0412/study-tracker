@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Profile - Study Time Tracker{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="animate-fadeInUp">
+        <h1 style="font-size: 1.75rem;">Profile & Settings</h1>
+        <p style="color: var(--gray-500);">Manage your account and preferences</p>
+    </div>
+    
+    <div class="grid grid-2 gap-4 mt-4">
+        <!-- Profile Information -->
+        <div class="card animate-fadeInUp">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-user-circle"></i>
+                    Profile Information
+                </h3>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% url 'tracker:profile' %}">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" value="{{ user.username }}" disabled>
+                        <small style="color: var(--gray-500);">Username cannot be changed</small>
+                    </div>
+                    
+                    <div class="grid grid-2 gap-3">
+                        <div class="form-group">
+                            <label class="form-label">First Name</label>
+                            <input type="text" class="form-control" name="first_name" value="{{ user.first_name|default:'' }}" placeholder="First name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" class="form-control" name="last_name" value="{{ user.last_name|default:'' }}" placeholder="Last name">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" class="form-control" name="email" value="{{ user.email|default:'' }}" placeholder="your@email.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Member Since</label>
+                        <p style="color: var(--gray-500); margin: 0.5rem 0 0 0;">{{ user.date_joined|date:"F d, Y" }}</p>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Save Changes
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Change Password -->
+        <div class="card animate-fadeInUp" style="animation-delay: 0.1s;">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-lock"></i>
+                    Change Password
+                </h3>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% url 'tracker:settings' %}">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label class="form-label">Current Password</label>
+                        <input type="password" class="form-control" name="current_password" required placeholder="Enter current password">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">New Password</label>
+                        <input type="password" class="form-control" name="new_password" required placeholder="Enter new password" minlength="8">
+                        <small style="color: var(--gray-500);">Minimum 8 characters</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Confirm New Password</label>
+                        <input type="password" class="form-control" name="confirm_password" required placeholder="Confirm new password">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-key"></i>
+                        Change Password
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Statistics Summary -->
+    <div class="card animate-fadeInUp mt-4" style="animation-delay: 0.2s;">
+        <div class="card-header">
+            <h3 class="card-title">
+                <i class="fas fa-chart-line"></i>
+                Your Statistics
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="grid grid-4 gap-3">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(99, 102, 241, 0.1);">
+                        <i class="fas fa-clock" style="color: var(--primary);"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalHours">0</div>
+                        <div class="stat-label">Total Hours</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1);">
+                        <i class="fas fa-calendar-check" style="color: var(--success);"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="totalSessions">0</div>
+                        <div class="stat-label">Sessions</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1);">
+                        <i class="fas fa-fire" style="color: var(--warning);"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="currentStreak">0</div>
+                        <div class="stat-label">Day Streak</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: rgba(139, 92, 246, 0.1);">
+                        <i class="fas fa-trophy" style="color: var(--purple);"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="goalsCompleted">0</div>
+                        <div class="stat-label">Goals Met</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Danger Zone -->
+    <div class="card animate-fadeInUp mt-4" style="animation-delay: 0.3s; border: 1px solid var(--error);">
+        <div class="card-header" style="background: rgba(239, 68, 68, 0.1);">
+            <h3 class="card-title" style="color: var(--error);">
+                <i class="fas fa-exclamation-triangle"></i>
+                Danger Zone
+            </h3>
+        </div>
+        <div class="card-body">
+            <p style="color: var(--gray-500); margin-bottom: 1rem;">
+                Once you delete your account, there is no going back. Please be certain.
+            </p>
+            <button class="btn btn-outline" style="color: var(--error); border-color: var(--error);" disabled>
+                <i class="fas fa-user-minus"></i>
+                Delete Account (Coming Soon)
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load user statistics
+    document.addEventListener('DOMContentLoaded', function() {
+        // These would normally come from the backend
+        // For now, showing placeholder values
+        document.getElementById('totalHours').textContent = '0';
+        document.getElementById('totalSessions').textContent = '0';
+        document.getElementById('currentStreak').textContent = '0';
+        document.getElementById('goalsCompleted').textContent = '0';
+    });
+    
+    // Show success message if redirected after action
+    {% if messages %}
+    {% for message in messages %}
+    StudyTracker.showToast('{{ message }}', '{{ message.tags }}');
+    {% endfor %}
+    {% endif %}
+</script>
+{% endblock %}

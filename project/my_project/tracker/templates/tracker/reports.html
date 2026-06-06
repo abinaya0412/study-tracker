@@ -1,0 +1,496 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reports - Study Time Tracker{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="d-flex justify-between align-center mb-4 animate-fadeInUp">
+        <div>
+            <h1 style="font-size: 1.75rem;">Study Reports</h1>
+            <p style="color: var(--gray-500);">Analyze your study patterns and progress</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'tracker:export_pdf' %}" class="btn btn-primary">
+                <i class="fas fa-file-pdf"></i>
+                Export PDF Report
+            </a>
+        </div>
+    </div>
+    
+    <!-- Date Range Selector -->
+    <div class="card mb-4 animate-fadeInUp">
+        <div class="card-body">
+            <div class="d-flex gap-3 align-center flex-wrap">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" style="font-size: 0.75rem;">From</label>
+                    <input type="date" class="form-control" id="dateFrom" style="min-width: 150px;">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" style="font-size: 0.75rem;">To</label>
+                    <input type="date" class="form-control" id="dateTo" style="min-width: 150px;">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label" style="font-size: 0.75rem;">Period</label>
+                    <select class="form-control" id="periodSelect" style="min-width: 120px;">
+                        <option value="week">This Week</option>
+                        <option value="month" selected>This Month</option>
+                        <option value="3months">Last 3 Months</option>
+                        <option value="year">This Year</option>
+                        <option value="all">All Time</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" style="margin-top: 1.25rem;">
+                    <i class="fas fa-sync-alt"></i>
+                    Update
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Summary Stats -->
+    <div class="dashboard-grid mb-4">
+        <div class="stat-card card-entrance">
+            <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-label">Total Study Time</div>
+            <div class="stat-value">{{ total_hours }}h</div>
+            <div style="font-size: 0.875rem; color: var(--gray-500); margin-top: 0.5rem;">
+                All time tracking
+            </div>
+        </div>
+        
+        <div class="stat-card card-entrance">
+            <div class="stat-icon">
+                <i class="fas fa-sun"></i>
+            </div>
+            <div class="stat-label">Today</div>
+            <div class="stat-value">{{ today_hours }}h</div>
+            <div style="font-size: 0.875rem; color: var(--gray-500); margin-top: 0.5rem;">
+                Today's progress
+            </div>
+        </div>
+        
+        <div class="stat-card card-entrance">
+            <div class="stat-icon">
+                <i class="fas fa-calendar-week"></i>
+            </div>
+            <div class="stat-label">This Week</div>
+            <div class="stat-value">{{ week_hours }}h</div>
+            <div style="font-size: 0.875rem; color: var(--gray-500); margin-top: 0.5rem;">
+                Weekly total
+            </div>
+        </div>
+        
+        <div class="stat-card card-entrance">
+            <div class="stat-icon">
+                <i class="fas fa-calendar"></i>
+            </div>
+            <div class="stat-label">This Month</div>
+            <div class="stat-value">{{ month_hours }}h</div>
+            <div style="font-size: 0.875rem; color: var(--gray-500); margin-top: 0.5rem;">
+                Monthly total
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts -->
+    <div class="grid grid-2 mb-4">
+        <!-- Daily Activity Heatmap -->
+        <div class="chart-container card-entrance">
+            <div class="chart-header">
+                <h3 class="chart-title">Daily Activity</h3>
+                <div class="chart-actions">
+                    <button class="btn btn-sm btn-ghost active">Day</button>
+                    <button class="btn btn-sm btn-ghost">Week</button>
+                </div>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="dailyActivityChart" class="chart" data-type="line" data-scheme="primary"></canvas>
+            </div>
+        </div>
+        
+        <!-- Subject Breakdown -->
+        <div class="chart-container card-entrance">
+            <div class="chart-header">
+                <h3 class="chart-title">Subject Distribution</h3>
+                <div class="chart-actions">
+                    <button class="btn btn-sm btn-ghost">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="subjectBreakdownChart" class="chart" data-type="pie" data-scheme="primary"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Weekly Comparison -->
+    <div class="chart-container mb-4 card-entrance">
+        <div class="chart-header">
+            <h3 class="chart-title">Weekly Comparison</h3>
+            <div class="chart-actions">
+                <button class="btn btn-sm btn-ghost active">This Month</button>
+                <button class="btn btn-sm btn-ghost">Last Month</button>
+            </div>
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="weeklyComparisonChart" class="chart" data-type="bar" data-scheme="primary"></canvas>
+        </div>
+    </div>
+    
+    <!-- Subject Performance -->
+    <div class="grid grid-2 mb-4">
+        <div class="card card-entrance">
+            <div class="card-header">
+                <h3 class="card-title">Subject Performance</h3>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-column gap-3">
+                    <div>
+                        <div class="d-flex justify-between mb-1">
+                            <div class="d-flex align-center gap-2">
+                                <span class="subject-color" style="background: #6366f1; width: 12px; height: 12px; border-radius: 50%;"></span>
+                                <span>Mathematics</span>
+                            </div>
+                            <span style="font-weight: 600;">18h 30m</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 38%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="d-flex justify-between mb-1">
+                            <div class="d-flex align-center gap-2">
+                                <span class="subject-color" style="background: #10b981; width: 12px; height: 12px; border-radius: 50%;"></span>
+                                <span>Physics</span>
+                            </div>
+                            <span style="font-weight: 600;">14h 15m</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill success" style="width: 29%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="d-flex justify-between mb-1">
+                            <div class="d-flex align-center gap-2">
+                                <span class="subject-color" style="background: #f59e0b; width: 12px; height: 12px; border-radius: 50%;"></span>
+                                <span>Chemistry</span>
+                            </div>
+                            <span style="font-weight: 600;">9h 45m</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill warning" style="width: 20%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="d-flex justify-between mb-1">
+                            <div class="d-flex align-center gap-2">
+                                <span class="subject-color" style="background: #3b82f6; width: 12px; height: 12px; border-radius: 50%;"></span>
+                                <span>English</span>
+                            </div>
+                            <span style="font-weight: 600;">4h 30m</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 9%; background: linear-gradient(90deg, #3b82f6, #60a5fa);"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="d-flex justify-between mb-1">
+                            <div class="d-flex align-center gap-2">
+                                <span class="subject-color" style="background: #8b5cf6; width: 12px; height: 12px; border-radius: 50%;"></span>
+                                <span>Computer Science</span>
+                            </div>
+                            <span style="font-weight: 600;">1h 30m</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 3%; background: linear-gradient(90deg, #8b5cf6, #a78bfa);"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Time by Day of Week -->
+        <div class="card card-entrance">
+            <div class="card-header">
+                <h3 class="card-title">Study by Day of Week</h3>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-column gap-2">
+                    <div class="d-flex align-center gap-3">
+                        <span style="width: 40px; font-weight: 600;">Mon</span>
+                        <div class="progress-bar" style="flex: 1;">
+                            <div class="progress-fill" style="width: 75%;"></div>
+                        </div>
+                        <span style="width: 50px; text-align: right; font-size: 0.875rem;">6h</span>
+                    </div>
+                    <div class="d-flex align-center gap-3">
+                        <span style="width: 40px; font-weight: 600;">Tue</span>
+                        <div class="progress-bar" style="flex: 1;">
+                            <div class="progress-fill success" style="width: 90%;"></div>
+                        </div>
+                        <span style="width: 50px; text-align: right; font-size: 0.875rem;">7h 15m</span>
+                    </div>
+                    <div class="d-flex align-center gap-3">
+                        <span style="width: 40px; font-weight: 600;">Wed</span>
+                        <div class="progress-bar" style="flex: 1;">
+                            <div class="progress-fill warning" style="width: 65%;"></div>
+                        </div>
+                        <span style="width: 50px; text-align: right; font-size: 0.875rem;">5h 15m</span>
+                    </div>
+                    <div class="d-flex align-center gap-3">
+                        <span style="width: 40px; font-weight: 600;">Thu</span>
+                        <div class="progress-bar" style="flex: 1;">
+                            <div class="progress-fill" style="width: 85%;"></div>
+                        </div>
+                        <span style="width: 50px; text-align: right; font-size: 0.875rem;">6h 45m</span>
+                    </div>
+                    <div class="d-flex align-center gap-3">
+                        <span style="width: 40px; font-weight: 600;">Fri</span>
+                        <div class="progress-bar" style="flex: 1;">
+                            <div class="progress-fill" style="width: 55%; background: linear-gradient(90deg, #3b82f6, #60a5fa);"></div>
+                        </div>
+                        <span style="width: 50px; text-align: right; font-size: 0.875rem;">4h 30m</span>
+                    </div>
+                    <div class="d-flex align-center gap-3">
+                        <span style="width: 40px; font-weight: 600;">Sat</span>
+                        <div class="progress-bar" style="flex: 1;">
+                            <div class="progress-fill" style="width: 40%; background: linear-gradient(90deg, #8b5cf6, #a78bfa);"></div>
+                        </div>
+                        <span style="width: 50px; text-align: right; font-size: 0.875rem;">3h 15m</span>
+                    </div>
+                    <div class="d-flex align-center gap-3">
+                        <span style="width: 40px; font-weight: 600;">Sun</span>
+                        <div class="progress-bar" style="flex: 1;">
+                            <div class="progress-fill" style="width: 30%; background: linear-gradient(90deg, #ec4899, #f472b6);"></div>
+                        </div>
+                        <span style="width: 50px; text-align: right; font-size: 0.875rem;">2h</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Hourly Distribution -->
+    <div class="chart-container card-entrance">
+        <div class="chart-header">
+            <h3 class="chart-title">Study Hours by Time of Day</h3>
+            <div class="chart-actions">
+                <button class="btn btn-sm btn-ghost active">Day</button>
+                <button class="btn btn-sm btn-ghost">Week</button>
+            </div>
+        </div>
+        <div class="chart-wrapper">
+            <canvas id="hourlyChart" class="chart" data-type="bar" data-scheme="primary"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Daily Activity Chart
+    const dailyCtx = document.getElementById('dailyActivityChart').getContext('2d');
+    new Chart(dailyCtx, {
+        type: 'line',
+        data: {
+            labels: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30'],
+            datasets: [{
+                label: 'Study Hours',
+                data: [2, 3.5, 4, 2.5, 5, 6, 4.5, 3, 5.5, 4, 6.5, 7, 5, 4, 6, 7.5, 5.5, 4.5, 6, 5, 7, 6.5, 4, 5, 6, 7, 5.5, 6, 4.5, 5],
+                borderColor: '#6366f1',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0,
+                pointHoverRadius: 6,
+                pointHoverBackgroundColor: '#6366f1'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(31, 41, 55, 0.9)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            return context.parsed.y + ' hours';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 10,
+                    grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                    ticks: { callback: v => v + 'h' }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+    
+    // Subject Breakdown Chart - using actual data from backend
+    const subjectsData = {{ subjects_data|safe }};
+    const subjectLabels = subjectsData.map(s => s.name);
+    const subjectValues = subjectsData.map(s => s.hours);
+    const subjectColors = subjectsData.map(s => s.color);
+    
+    const subjectCtx = document.getElementById('subjectBreakdownChart').getContext('2d');
+    new Chart(subjectCtx, {
+        type: 'pie',
+        data: {
+            labels: subjectLabels,
+            datasets: [{
+                data: subjectValues,
+                backgroundColor: subjectColors,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { usePointStyle: true, padding: 15 }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(31, 41, 55, 0.9)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + context.parsed + '%';
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Weekly Comparison Chart
+    const weeklyCtx = document.getElementById('weeklyComparisonChart').getContext('2d');
+    new Chart(weeklyCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+            datasets: [{
+                label: 'This Month',
+                data: [28, 32, 35, 42],
+                backgroundColor: '#6366f1',
+                borderRadius: 8
+            }, {
+                label: 'Last Month',
+                data: [24, 28, 30, 35],
+                backgroundColor: '#a5b4fc',
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    backgroundColor: 'rgba(31, 41, 55, 0.9)',
+                    padding: 12,
+                    cornerRadius: 8
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                    ticks: { callback: v => v + 'h' }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+    
+    // Hourly Distribution Chart
+    const hourlyCtx = document.getElementById('hourlyChart').getContext('2d');
+    new Chart(hourlyCtx, {
+        type: 'bar',
+        data: {
+            labels: ['6AM', '7AM', '8AM', '9AM', '10AM', '11AM', '12PM', '1PM', '2PM', '3PM', '4PM', '5PM', '6PM', '7PM', '8PM', '9PM', '10PM'],
+            datasets: [{
+                label: 'Average Hours',
+                data: [0.5, 1, 1.5, 2, 2.5, 2, 1.5, 1, 2, 2.5, 2, 1.5, 1, 2.5, 3, 2, 1],
+                backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(31, 41, 55, 0.9)',
+                    padding: 12,
+                    cornerRadius: 8
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                    ticks: { callback: v => v + 'h' }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+    
+    // Set default dates
+    const now = new Date();
+    document.getElementById('dateTo').valueAsDate = now;
+    const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+    document.getElementById('dateFrom').valueAsDate = monthAgo;
+    
+    // Period selector
+    document.getElementById('periodSelect').addEventListener('change', function() {
+        const today = new Date();
+        let fromDate;
+        
+        switch(this.value) {
+            case 'week':
+                fromDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7);
+                break;
+            case 'month':
+                fromDate = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+                break;
+            case '3months':
+                fromDate = new Date(today.getFullYear(), today.getMonth() - 3, today.getDate());
+                break;
+            case 'year':
+                fromDate = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+                break;
+            case 'all':
+                fromDate = new Date(2020, 0, 1);
+                break;
+            default:
+                return;
+        }
+        
+        document.getElementById('dateFrom').valueAsDate = fromDate;
+        document.getElementById('dateTo').valueAsDate = today;
+    });
+</script>
+{% endblock %}

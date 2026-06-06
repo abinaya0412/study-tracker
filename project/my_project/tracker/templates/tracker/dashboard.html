@@ -1,0 +1,273 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load tracker_filters %}
+
+{% block title %}Dashboard - Study Time Tracker{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Welcome Section -->
+    <div class="welcome-section mb-4">
+        <h1 class="welcome-title">Welcome back, {{ user.first_name|default:user.username }}! 👋</h1>
+        <p class="welcome-subtitle">Track your study progress and achieve your goals</p>
+    </div>
+    
+    <!-- Active Timer Alert -->
+    {% if active_timer %}
+    <div class="alert alert-info mb-4 animate-fadeInDown">
+        <i class="fas fa-clock"></i>
+        <div>
+            <strong>Timer is running!</strong>
+            <span>You're currently studying {{ active_timer.subject.name }}</span>
+        </div>
+        <a href="{% url 'tracker:session' %}" class="btn btn-sm btn-primary">View Timer</a>
+    </div>
+    {% endif %}
+    
+    <!-- Stats Overview -->
+    {% if total_seconds > 0 %}
+    <div class="dashboard-grid mb-4">
+        <div class="stat-card animate-fadeInUp" style="animation-delay: 0.1s;">
+            <div class="stat-icon" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-label">Today's Study Time</div>
+                <div class="stat-value">{{ today_seconds|floatformat:0|seconds_to_time }}</div>
+                <div class="stat-change {% if daily_progress >= 100 %}text-success{% else %}text-muted{% endif %}">
+                    {% if daily_progress >= 100 %}✓ Goal achieved!{% elif daily_goal.target_duration.total_seconds > 0 %}{{ daily_progress|floatformat:0 }}% of goal{% else %}Set a goal to track progress{% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card animate-fadeInUp" style="animation-delay: 0.2s;">
+            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success-color);">
+                <i class="fas fa-calendar-week"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-label">This Week</div>
+                <div class="stat-value">{{ week_seconds|floatformat:0|seconds_to_time }}</div>
+                <div class="stat-change text-muted">
+                    {% if weekly_goal.target_duration.total_seconds > 0 %}{{ weekly_progress|floatformat:0 }}% of weekly goal{% else %}Set a weekly goal{% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card animate-fadeInUp" style="animation-delay: 0.3s;">
+            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning-color);">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-label">This Month</div>
+                <div class="stat-value">{{ month_seconds|floatformat:0|seconds_to_time }}</div>
+                <div class="stat-change text-muted">
+                    {% if monthly_goal.target_duration.total_seconds > 0 %}{{ monthly_progress|floatformat:0 }}% of monthly goal{% else %}Set a monthly goal{% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card animate-fadeInUp" style="animation-delay: 0.4s;">
+            <div class="stat-icon" style="background: rgba(139, 92, 246, 0.1); color: var(--purple);">
+                <i class="fas fa-fire"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-label">Current Streak</div>
+                <div class="stat-value">{{ streak.current_streak }} days</div>
+                <div class="stat-change text-muted">
+                    Best: {{ streak.best_streak }} days
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card animate-fadeInUp" style="text-align: center; padding: 3rem;">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">📚</div>
+        <h2 style="margin-bottom: 0.5rem;">No study data available yet</h2>
+        <p style="color: var(--gray-500); margin-bottom: 1.5rem;">Start tracking your study sessions to see your progress here!</p>
+        <a href="{% url 'tracker:session' %}" class="btn btn-primary">
+            <i class="fas fa-play"></i>
+            Start Your First Session
+        </a>
+    </div>
+    {% endif %}
+    
+    <div class="grid grid-2" style="gap: 2rem;">
+        <!-- Goals Progress Section -->
+        <div class="card animate-fadeInUp" style="animation-delay: 0.5s;">
+            <div class="card-header d-flex justify-between align-center">
+                <h3 class="card-title">Goal Progress</h3>
+                <a href="{% url 'tracker:goals' %}" class="btn btn-sm btn-ghost">View All</a>
+            </div>
+            <div class="card-body">
+                <!-- Daily Goal -->
+                <div class="goal-item mb-4">
+                    <div class="d-flex justify-between align-center mb-2">
+                        <span class="font-medium">Daily Goal</span>
+                        <span class="text-muted">{{ daily_progress|floatformat:0 }}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill {% if daily_progress >= 100 %}bg-success{% endif %}" 
+                             style="width: {{ daily_progress|floatformat:0 }}%;"></div>
+                    </div>
+                    <div class="text-sm text-muted mt-1">
+                        {{ today_seconds|floatformat:0|seconds_to_time }} / {{ daily_goal.target_duration|duration_to_time }}
+                    </div>
+                </div>
+                
+                <!-- Weekly Goal -->
+                <div class="goal-item mb-4">
+                    <div class="d-flex justify-between align-center mb-2">
+                        <span class="font-medium">Weekly Goal</span>
+                        <span class="text-muted">{{ weekly_progress|floatformat:0 }}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill {% if weekly_progress >= 100 %}bg-success{% endif %}" 
+                             style="width: {{ weekly_progress|floatformat:0 }}%;"></div>
+                    </div>
+                    <div class="text-sm text-muted mt-1">
+                        {{ week_seconds|floatformat:0|seconds_to_time }} / {{ weekly_goal.target_duration|duration_to_time }}
+                    </div>
+                </div>
+                
+                <!-- Monthly Goal -->
+                <div class="goal-item">
+                    <div class="d-flex justify-between align-center mb-2">
+                        <span class="font-medium">Monthly Goal</span>
+                        <span class="text-muted">{{ monthly_progress|floatformat:0 }}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill {% if monthly_progress >= 100 %}bg-success{% endif %}" 
+                             style="width: {{ monthly_progress|floatformat:0 }}%;"></div>
+                    </div>
+                    <div class="text-sm text-muted mt-1">
+                        {{ month_seconds|floatformat:0|seconds_to_time }} / {{ monthly_goal.target_duration|duration_to_time }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Sessions -->
+        <div class="card animate-fadeInUp" style="animation-delay: 0.6s;">
+            <div class="card-header d-flex justify-between align-center">
+                <h3 class="card-title">Recent Sessions</h3>
+                <a href="{% url 'tracker:history' %}" class="btn btn-sm btn-ghost">View All</a>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <div style="max-height: 300px; overflow-y: auto;">
+                    {% for session in recent_sessions %}
+                    <div class="session-item" style="display: flex; align-items: center; gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--gray-100);">
+                        <div class="session-icon" style="width: 40px; height: 40px; border-radius: 50%; background: {{ session.subject.color|default:'#6366f1' }}20; display: flex; align-items: center; justify-content: center; color: {{ session.subject.color|default:'#6366f1' }};">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600;">{{ session.subject.name|default:'No Subject' }}</div>
+                            <div style="font-size: 0.875rem; color: var(--gray-500);">
+                                {% if session.duration %}
+                                    {{ session.duration.total_seconds|floatformat:0|seconds_to_time }} • 
+                                {% endif %}
+                                {{ session.start_time|date:"M d, g:i A" }}
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div style="padding: 2rem; text-align: center; color: var(--gray-500);">
+                        <i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <p>No sessions yet. <a href="{% url 'tracker:session' %}">Start tracking!</a></p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Subject Distribution Chart -->
+    <div class="card mt-4 animate-fadeInUp" style="animation-delay: 0.7s;">
+        <div class="card-header">
+            <h3 class="card-title">Study Distribution by Subject (This Month)</h3>
+        </div>
+        <div class="card-body">
+            {% if subjects_data %}
+            <div class="chart-container" style="position: relative; height: 300px;">
+                <canvas id="subjectChart"></canvas>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 2rem; color: var(--gray-500);">
+                <i class="fas fa-chart-pie" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                <p>No study data yet. Start tracking to see your subject distribution!</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Achievements Section -->
+    {% if user_achievements %}
+    <div class="card mt-4 animate-fadeInUp" style="animation-delay: 0.8s;">
+        <div class="card-header d-flex justify-between align-center">
+            <h3 class="card-title">Recent Achievements</h3>
+            <a href="{% url 'tracker:achievements' %}" class="btn btn-sm btn-ghost">View All</a>
+        </div>
+        <div class="card-body">
+            <div class="achievements-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+                {% for user_achievement in user_achievements %}
+                <div class="achievement-item" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--gray-50); border-radius: 0.5rem;">
+                    <span style="font-size: 1.5rem;">{{ user_achievement.achievement.icon }}</span>
+                    <div>
+                        <div style="font-weight: 600; font-size: 0.875rem;">{{ user_achievement.achievement.name }}</div>
+                        <div style="font-size: 0.75rem; color: var(--gray-500);">
+                            {{ user_achievement.earned_at|date:"M d, Y" }}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Subject Distribution Chart
+    {% if subjects_data %}
+    const ctx = document.getElementById('subjectChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: [{% for subject in subjects_data %}'{{ subject.name }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+            datasets: [{
+                data: [{% for subject in subjects_data %}{{ subject.seconds|floatformat:0 }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                backgroundColor: [{% for subject in subjects_data %}'{{ subject.color }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const hours = (value / 3600).toFixed(1);
+                            return `${label}: ${hours} hours (${context.parsed.toFixed(1)}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+</script>
+{% endblock %}

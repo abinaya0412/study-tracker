@@ -1,0 +1,602 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load tracker_filters %}
+
+{% block title %}Track Time - Study Time Tracker{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="grid grid-2" style="gap: 2rem;">
+        <!-- Timer Section -->
+        <div>
+            <div class="card animate-fadeInUp">
+                <div class="card-header text-center">
+                    <h2 class="card-title">Study Timer</h2>
+                    <p style="color: var(--gray-500);">Track your focused study time</p>
+                </div>
+                
+                <div class="card-body text-center">
+                    <!-- Subject Selector -->
+                    <div class="form-group">
+                        <label class="form-label">What are you studying?</label>
+                        <div class="subject-selector" id="subjectSelector">
+                            {% for subject in subjects %}
+                            <div class="subject-chip {% if forloop.first %}active{% endif %}" 
+                                 data-subject-id="{{ subject.id }}" 
+                                 data-subject-name="{{ subject.name }}">
+                                <span class="subject-color" style="background: {{ subject.color }};"></span>
+                                {{ subject.name }}
+                            </div>
+                            {% empty %}
+                            <p style="color: var(--gray-500); font-size: 0.875rem;">
+                                No subjects yet. <a href="{% url 'tracker:subjects' %}" style="color: var(--primary-color);">Create one first</a>
+                            </p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Timer Display -->
+                    <div class="timer-container" style="margin: 2rem auto;">
+                        <div class="timer-display" id="timerDisplay">00:00:00</div>
+                        
+                        <!-- Timer Status -->
+                        <div class="mb-3">
+                            <span class="badge badge-primary" id="timerStatus">Ready</span>
+                        </div>
+                        
+                        <!-- Timer Controls -->
+                        <div class="timer-controls">
+                            <button class="timer-btn timer-btn-start" id="startBtn" title="Start Timer" {% if not subjects %}disabled{% endif %}>
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button class="timer-btn timer-btn-pause hidden" id="pauseBtn" title="Pause Timer">
+                                <i class="fas fa-pause"></i>
+                            </button>
+                            <button class="timer-btn timer-btn-resume hidden" id="resumeBtn" title="Resume Timer">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <button class="timer-btn timer-btn-stop hidden" id="stopBtn" title="Stop Timer">
+                                <i class="fas fa-stop"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Session Info -->
+                    <div class="card" style="background: var(--gray-50); margin-top: 1.5rem;">
+                        <div class="card-body">
+                            <div class="grid grid-3 gap-2">
+                                <div class="text-center">
+                                    <div style="font-size: 0.75rem; color: var(--gray-500);">Current Subject</div>
+                                    <div style="font-weight: 600; color: var(--gray-800);" id="currentSubject">
+                                        {% if subjects %}{{ subjects.first.name }}{% else %}None{% endif %}
+                                    </div>
+                                </div>
+                                <div class="text-center">
+                                    <div style="font-size: 0.75rem; color: var(--gray-500);">Start Time</div>
+                                    <div style="font-weight: 600; color: var(--gray-800);" id="startTime">--:--</div>
+                                </div>
+                                <div class="text-center">
+                                    <div style="font-size: 0.75rem; color: var(--gray-500);">Sessions Today</div>
+                                    <div style="font-weight: 600; color: var(--gray-800);" id="sessionCount">{{ today_session_count }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div class="card mt-4 animate-fadeInUp" style="animation-delay: 0.1s;">
+                <div class="card-header">
+                    <h3 class="card-title">Today's Progress</h3>
+                </div>
+                <div class="card-body">
+                    <div class="dashboard-grid" style="margin-bottom: 0;">
+                        <div class="stat-card" style="padding: 1rem;">
+                            <div class="stat-label">Total Time</div>
+                            <div class="stat-value" style="font-size: 1.5rem;" id="todayTotalTime">
+                                {% widthratio today_seconds 3600 1 %}h {% widthratio today_seconds|modulo:3600 60 1 %}m
+                            </div>
+                        </div>
+                        <div class="stat-card" style="padding: 1rem;">
+                            <div class="stat-label">Sessions</div>
+                            <div class="stat-value" style="font-size: 1.5rem;">{{ today_session_count }}</div>
+                        </div>
+                        <div class="stat-card" style="padding: 1rem;">
+                            <div class="stat-label">Goal</div>
+                            <div class="stat-value" style="font-size: 1.5rem;">0%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Panel -->
+        <div>
+            <!-- Manual Entry -->
+            <div class="card animate-fadeInUp" style="animation-delay: 0.2s;">
+                <div class="card-header">
+                    <h3 class="card-title">Manual Entry</h3>
+                    <p style="color: var(--gray-500); font-size: 0.875rem;">Add a past study session</p>
+                </div>
+                <div class="card-body">
+                    <form id="manualEntryForm" method="POST" action="{% url 'tracker:session' %}">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label class="form-label">Subject</label>
+                            <select class="form-control" name="subject_id" required>
+                                {% for subject in subjects %}
+                                <option value="{{ subject.id }}">{{ subject.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="grid grid-2 gap-3">
+                            <div class="form-group">
+                                <label class="form-label">Date</label>
+                                <input type="date" class="form-control" name="date" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Start Time</label>
+                                <input type="time" class="form-control" name="start_time" required>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-2 gap-3">
+                            <div class="form-group">
+                                <label class="form-label">Duration (minutes)</label>
+                                <input type="number" class="form-control" name="duration" min="1" max="480" placeholder="60" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">End Time</label>
+                                <input type="time" class="form-control" name="end_time" readonly>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Notes (optional)</label>
+                            <textarea class="form-control" name="notes" placeholder="What did you study?" rows="3"></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-plus"></i>
+                            Add Session
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Recent Sessions -->
+            <div class="card mt-4 animate-fadeInUp" style="animation-delay: 0.3s;">
+                <div class="card-header d-flex justify-between align-center">
+                    <h3 class="card-title">Recent Sessions</h3>
+                    <a href="{% url 'tracker:history' %}" class="btn btn-sm btn-ghost">View All</a>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        {% for session in recent_sessions %}
+                        <div class="session-item" style="display: flex; align-items: center; gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--gray-100);">
+                            <div class="session-icon" style="width: 40px; height: 40px; border-radius: 50%; background: {{ session.subject.color|default:'#6366f1' }}20; display: flex; align-items: center; justify-content: center; color: {{ session.subject.color|default:'#6366f1' }};">
+                                <i class="fas fa-book"></i>
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600;">{{ session.subject.name|default:'No Subject' }}</div>
+                                <div style="font-size: 0.875rem; color: var(--gray-500);">
+                                    {% if session.duration %}
+                                        {% widthratio session.duration.total_seconds 3600 1 %}h 
+                                        {% widthratio session.duration.total_seconds|modulo:3600 60 1 %}m • 
+                                    {% endif %}
+                                    {{ session.start_time|date:"M d, g:i A" }}
+                                </div>
+                            </div>
+                            <span class="badge badge-success">Completed</span>
+                        </div>
+                        {% empty %}
+                        <div style="padding: 2rem; text-align: center; color: var(--gray-500);">
+                            <i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                            <p>No sessions yet. Start tracking your study time!</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Session Complete Modal -->
+<div id="sessionCompleteModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="card animate-scaleIn" style="max-width: 500px; width: 90%; margin: 0 auto;">
+        <div class="card-header text-center">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">🎉</div>
+            <h2 class="card-title">Session Complete!</h2>
+            <p style="color: var(--gray-500);">Great job staying focused!</p>
+        </div>
+        <div class="card-body text-center">
+            <div class="grid grid-2 gap-3 mb-4">
+                <div class="card" style="background: var(--gray-50);">
+                    <div style="font-size: 0.875rem; color: var(--gray-500);">Duration</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);" id="modalDuration">1h 30m</div>
+                </div>
+                <div class="card" style="background: var(--gray-50);">
+                    <div style="font-size: 0.875rem; color: var(--gray-500);">Subject</div>
+                    <div style="font-size: 1.5rem; font-weight: 700;" id="modalSubject">Mathematics</div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Add Notes (optional)</label>
+                <textarea class="form-control" id="sessionNotes" placeholder="What did you accomplish?" rows="3"></textarea>
+            </div>
+        </div>
+        <div class="card-footer" style="display: flex; gap: 1rem; padding: 1rem;">
+            <button class="btn btn-outline w-100" onclick="closeSessionModal()">Skip</button>
+            <button class="btn btn-primary w-100" onclick="saveSession()">Save Session</button>
+        </div>
+    </div>
+</div>
+
+<!-- Goal Achieved Modal -->
+<div id="goalAchievedModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="card animate-scaleIn" style="max-width: 400px; width: 90%; margin: 0 auto;">
+        <div class="card-header text-center">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">🏆</div>
+            <h2 class="card-title">Goal Achieved!</h2>
+            <p style="color: var(--gray-500);">Congratulations on reaching your daily goal!</p>
+        </div>
+        <div class="card-body text-center">
+            <p>You've completed your daily study goal. Keep up the great work!</p>
+        </div>
+        <div class="card-footer" style="padding: 1rem;">
+            <button class="btn btn-primary w-100" onclick="closeGoalModal()">Awesome!</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Timer variables
+    let timerInterval = null;
+    let totalSeconds = 0;
+    let isRunning = false;
+    let isPaused = false;
+    let startTime = null;
+    let selectedSubjectId = {% if subjects %}{{ subjects.first.id }}{% else %}null{% endif %};
+    let selectedSubjectName = "{% if subjects %}{{ subjects.first.name }}{% else %}None{% endif %}";
+    let timerId = null;
+    
+    // DOM Elements
+    const timerDisplay = document.getElementById('timerDisplay');
+    const timerStatus = document.getElementById('timerStatus');
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resumeBtn = document.getElementById('resumeBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const startTimeDisplay = document.getElementById('startTime');
+    const currentSubjectDisplay = document.getElementById('currentSubject');
+    
+    // Format time as HH:MM:SS
+    function formatTime(totalSecs) {
+        const hrs = Math.floor(totalSecs / 3600);
+        const mins = Math.floor((totalSecs % 3600) / 60);
+        const secs = totalSecs % 60;
+        return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    
+    // Format time as Xh Ym
+    function formatTimeShort(totalSecs) {
+        const hrs = Math.floor(totalSecs / 3600);
+        const mins = Math.floor((totalSecs % 3600) / 60);
+        if (hrs > 0) {
+            return `${hrs}h ${mins}m`;
+        }
+        return `${mins}m`;
+    }
+    
+    // Update display
+    function updateDisplay() {
+        timerDisplay.textContent = formatTime(totalSeconds);
+    }
+    
+    // Start timer
+    function startTimer() {
+        if (!selectedSubjectId) {
+            alert('Please select a subject first');
+            return;
+        }
+        
+        if (!isRunning) {
+            // Send start request to server
+            fetch('{% url "tracker:start_timer" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: `subject_id=${selectedSubjectId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    timerId = data.timer_id;
+                    isRunning = true;
+                    isPaused = false;
+                    startTime = new Date(data.start_time);
+                    startTimeDisplay.textContent = startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                    
+                    timerDisplay.classList.add('running');
+                    timerStatus.textContent = 'In Progress';
+                    timerStatus.className = 'badge badge-success';
+                    
+                    startBtn.classList.add('hidden');
+                    pauseBtn.classList.remove('hidden');
+                    stopBtn.classList.remove('hidden');
+                    
+                    // Start local timer
+                    timerInterval = setInterval(() => {
+                        if (!isPaused) {
+                            totalSeconds++;
+                            updateDisplay();
+                        }
+                    }, 1000);
+                    
+                    // Update subject display
+                    currentSubjectDisplay.textContent = selectedSubjectName;
+                } else {
+                    alert(data.message || 'Failed to start timer');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to start timer. Please try again.');
+            });
+        }
+    }
+    
+    // Pause timer
+    function pauseTimer() {
+        if (isRunning && !isPaused) {
+            fetch('{% url "tracker:pause_timer" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    isPaused = true;
+                    clearInterval(timerInterval);
+                    
+                    timerDisplay.classList.remove('running');
+                    timerDisplay.classList.add('paused');
+                    timerStatus.textContent = 'Paused';
+                    timerStatus.className = 'badge badge-warning';
+                    
+                    pauseBtn.classList.add('hidden');
+                    resumeBtn.classList.remove('hidden');
+                }
+            });
+        }
+    }
+    
+    // Resume timer
+    function resumeTimer() {
+        if (isPaused) {
+            fetch('{% url "tracker:resume_timer" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    isPaused = false;
+                    timerDisplay.classList.remove('paused');
+                    timerDisplay.classList.add('running');
+                    timerStatus.textContent = 'In Progress';
+                    timerStatus.className = 'badge badge-success';
+                    
+                    resumeBtn.classList.add('hidden');
+                    pauseBtn.classList.remove('hidden');
+                    
+                    timerInterval = setInterval(() => {
+                        totalSeconds++;
+                        updateDisplay();
+                    }, 1000);
+                }
+            });
+        }
+    }
+    
+    // Stop timer
+    function stopTimer() {
+        const notes = document.getElementById('sessionNotes').value;
+        
+        fetch('{% url "tracker:stop_timer" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: `notes=${encodeURIComponent(notes)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                clearInterval(timerInterval);
+                isRunning = false;
+                isPaused = false;
+                
+                timerDisplay.classList.remove('running', 'paused');
+                
+                // Show completion modal
+                showSessionComplete(data.duration_seconds, data.subject);
+                
+                // Check if goal achieved
+                if (data.goal_achieved) {
+                    setTimeout(() => showGoalAchieved(), 500);
+                }
+                
+                // Reset buttons
+                startBtn.classList.remove('hidden');
+                pauseBtn.classList.add('hidden');
+                resumeBtn.classList.add('hidden');
+                stopBtn.classList.add('hidden');
+            }
+        });
+    }
+    
+    // Show session complete modal
+    function showSessionComplete(durationSeconds, subject) {
+        const modal = document.getElementById('sessionCompleteModal');
+        document.getElementById('modalDuration').textContent = formatTimeShort(durationSeconds);
+        document.getElementById('modalSubject').textContent = subject;
+        modal.style.display = 'flex';
+    }
+    
+    // Close session modal
+    function closeSessionModal() {
+        document.getElementById('sessionCompleteModal').style.display = 'none';
+        resetTimer();
+        location.reload(); // Reload to show updated sessions
+    }
+    
+    // Save session
+    function saveSession() {
+        closeSessionModal();
+    }
+    
+    // Show goal achieved modal
+    function showGoalAchieved() {
+        document.getElementById('goalAchievedModal').style.display = 'flex';
+    }
+    
+    // Close goal modal
+    function closeGoalModal() {
+        document.getElementById('goalAchievedModal').style.display = 'none';
+    }
+    
+    // Reset timer
+    function resetTimer() {
+        totalSeconds = 0;
+        updateDisplay();
+        startTimeDisplay.textContent = '--:--';
+        timerStatus.textContent = 'Ready';
+        timerStatus.className = 'badge badge-primary';
+        document.getElementById('sessionNotes').value = '';
+        timerId = null;
+    }
+    
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Event listeners
+    startBtn.addEventListener('click', startTimer);
+    pauseBtn.addEventListener('click', pauseTimer);
+    resumeBtn.addEventListener('click', resumeTimer);
+    stopBtn.addEventListener('click', stopTimer);
+    
+    // Subject selector
+    document.querySelectorAll('.subject-chip').forEach(chip => {
+        chip.addEventListener('click', function() {
+            document.querySelectorAll('.subject-chip').forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            selectedSubjectId = this.dataset.subjectId;
+            selectedSubjectName = this.dataset.subjectName;
+            currentSubjectDisplay.textContent = selectedSubjectName;
+        });
+    });
+    
+    // Manual entry form - calculate end time
+    document.querySelector('input[name="duration"]').addEventListener('input', function() {
+        const duration = parseInt(this.value) || 0;
+        const startTimeInput = document.querySelector('input[name="start_time"]').value;
+        if (startTimeInput) {
+            const [hours, minutes] = startTimeInput.split(':').map(Number);
+            const startMinutes = hours * 60 + minutes;
+            const endMinutes = startMinutes + duration;
+            const endHours = Math.floor(endMinutes / 60) % 24;
+            const endMins = endMinutes % 60;
+            document.querySelector('input[name="end_time"]').value = 
+                `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+        }
+    });
+    
+    // Set default date to today
+    document.querySelector('input[name="date"]').valueAsDate = new Date();
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && !e.target.matches('input, textarea')) {
+            e.preventDefault();
+            if (!isRunning) startTimer();
+            else if (!isPaused) pauseTimer();
+            else resumeTimer();
+        }
+        if (e.code === 'Escape' && isRunning) {
+            stopTimer();
+        }
+    });
+    
+    // Check for active timer on page load
+    window.addEventListener('load', () => {
+        fetch('{% url "tracker:get_timer_status" %}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.active) {
+                // Restore timer state
+                timerId = data.timer_id;
+                totalSeconds = Math.floor(data.elapsed_seconds);
+                isRunning = true;
+                isPaused = data.is_paused;
+                startTime = new Date(data.start_time);
+                
+                updateDisplay();
+                currentSubjectDisplay.textContent = data.subject;
+                startTimeDisplay.textContent = startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                
+                if (isPaused) {
+                    timerDisplay.classList.add('paused');
+                    timerStatus.textContent = 'Paused';
+                    timerStatus.className = 'badge badge-warning';
+                    startBtn.classList.add('hidden');
+                    pauseBtn.classList.add('hidden');
+                    resumeBtn.classList.remove('hidden');
+                    stopBtn.classList.remove('hidden');
+                } else {
+                    timerDisplay.classList.add('running');
+                    timerStatus.textContent = 'In Progress';
+                    timerStatus.className = 'badge badge-success';
+                    startBtn.classList.add('hidden');
+                    pauseBtn.classList.remove('hidden');
+                    stopBtn.classList.remove('hidden');
+                    
+                    // Resume local timer
+                    timerInterval = setInterval(() => {
+                        if (!isPaused) {
+                            totalSeconds++;
+                            updateDisplay();
+                        }
+                    }, 1000);
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

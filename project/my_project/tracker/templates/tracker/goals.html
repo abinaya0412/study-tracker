@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load tracker_filters %}
+
+{% block title %}Goals - Study Time Tracker{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="page-title mb-4">Study Goals</h1>
+    
+    <!-- Create New Goal Button -->
+    <div class="mb-4">
+        <button class="btn btn-primary" onclick="showCreateGoalModal()">
+            <i class="fas fa-plus"></i>
+            Create New Goal
+        </button>
+    </div>
+    
+    <!-- Goals List -->
+    <div class="grid grid-3 gap-4 mb-4">
+        <!-- Daily Goals -->
+        {% for goal in daily_goals %}
+        <div class="card animate-fadeInUp" style="animation-delay: 0.1s;">
+            <div class="card-header d-flex justify-between align-center">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 1.5rem;">📅</span>
+                    <h3 class="card-title">Daily Goal</h3>
+                </div>
+                <span class="badge badge-primary">{{ goal.date|date:"M d" }}</span>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <div class="stat-value" style="font-size: 2rem;">{{ goal.actual_duration|duration_to_time }}</div>
+                    <div class="text-muted">of {{ goal.target_duration|duration_to_time }} target</div>
+                </div>
+                
+                <div class="progress-bar mb-3">
+                    <div class="progress-fill {% if goal.get_progress_percentage >= 100 %}bg-success{% endif %}" 
+                         style="width: {{ goal.get_progress_percentage|floatformat:0 }}%;"></div>
+                </div>
+                
+                <div class="text-center mb-3">
+                    <span class="badge {% if goal.achieved %}badge-success{% else %}badge-primary{% endif %}" style="font-size: 1rem;">
+                        {{ goal.get_progress_percentage|floatformat:0 }}% Complete
+                    </span>
+                </div>
+                
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-outline flex-1" onclick="editGoal('daily', {{ goal.id }})">
+                        <i class="fas fa-edit"></i>
+                        Edit
+                    </button>
+                    <button class="btn btn-outline flex-1 text-danger" onclick="deleteGoal({{ goal.id }})">
+                        <i class="fas fa-trash"></i>
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="card">
+            <div class="card-body text-center" style="padding: 2rem;">
+                <p style="color: var(--gray-500);">No daily goals set. Create your first daily goal!</p>
+            </div>
+        </div>
+        {% endfor %}
+        
+        <!-- Weekly Goals -->
+        {% for goal in weekly_goals %}
+        <div class="card animate-fadeInUp" style="animation-delay: 0.2s;">
+            <div class="card-header d-flex justify-between align-center">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 1.5rem;">📆</span>
+                    <h3 class="card-title">Weekly Goal</h3>
+                </div>
+                <span class="badge badge-primary">Week of {{ goal.week_start|date:"M d" }}</span>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <div class="stat-value" style="font-size: 2rem;">{{ goal.actual_duration|duration_to_time }}</div>
+                    <div class="text-muted">of {{ goal.target_duration|duration_to_time }} target</div>
+                </div>
+                
+                <div class="progress-bar mb-3">
+                    <div class="progress-fill {% if goal.get_progress_percentage >= 100 %}bg-success{% endif %}" 
+                         style="width: {{ goal.get_progress_percentage|floatformat:0 }}%;"></div>
+                </div>
+                
+                <div class="text-center mb-3">
+                    <span class="badge {% if goal.achieved %}badge-success{% else %}badge-primary{% endif %}" style="font-size: 1rem;">
+                        {{ goal.get_progress_percentage|floatformat:0 }}% Complete
+                    </span>
+                </div>
+                
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-outline flex-1" onclick="editGoal('weekly', {{ goal.id }})">
+                        <i class="fas fa-edit"></i>
+                        Edit
+                    </button>
+                    <button class="btn btn-outline flex-1 text-danger" onclick="deleteGoal({{ goal.id }})">
+                        <i class="fas fa-trash"></i>
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="card">
+            <div class="card-body text-center" style="padding: 2rem;">
+                <p style="color: var(--gray-500);">No weekly goals set. Create your first weekly goal!</p>
+            </div>
+        </div>
+        {% endfor %}
+        
+        <!-- Monthly Goals -->
+        {% for goal in monthly_goals %}
+        <div class="card animate-fadeInUp" style="animation-delay: 0.3s;">
+            <div class="card-header d-flex justify-between align-center">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 1.5rem;">🗓️</span>
+                    <h3 class="card-title">Monthly Goal</h3>
+                </div>
+                <span class="badge badge-primary">{{ goal.month }}/{{ goal.year }}</span>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <div class="stat-value" style="font-size: 2rem;">{{ goal.actual_duration|duration_to_time }}</div>
+                    <div class="text-muted">of {{ goal.target_duration|duration_to_time }} target</div>
+                </div>
+                
+                <div class="progress-bar mb-3">
+                    <div class="progress-fill {% if goal.get_progress_percentage >= 100 %}bg-success{% endif %}" 
+                         style="width: {{ goal.get_progress_percentage|floatformat:0 }}%;"></div>
+                </div>
+                
+                <div class="text-center mb-3">
+                    <span class="badge {% if goal.achieved %}badge-success{% else %}badge-primary{% endif %}" style="font-size: 1rem;">
+                        {{ goal.get_progress_percentage|floatformat:0 }}% Complete
+                    </span>
+                </div>
+                
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-outline flex-1" onclick="editGoal('monthly', {{ goal.id }})">
+                        <i class="fas fa-edit"></i>
+                        Edit
+                    </button>
+                    <button class="btn btn-outline flex-1 text-danger" onclick="deleteGoal({{ goal.id }})">
+                        <i class="fas fa-trash"></i>
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="card">
+            <div class="card-body text-center" style="padding: 2rem;">
+                <p style="color: var(--gray-500);">No monthly goals set. Create your first monthly goal!</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Achievements Section -->
+    {% if user_achievements %}
+    <div class="card mb-4 animate-fadeInUp" style="animation-delay: 0.4s;">
+        <div class="card-header d-flex justify-between align-center">
+            <h3 class="card-title">
+                <i class="fas fa-trophy" style="color: var(--warning-color);"></i>
+                Your Achievements
+            </h3>
+            <a href="{% url 'tracker:achievements' %}" class="btn btn-sm btn-ghost">View All</a>
+        </div>
+        <div class="card-body">
+            <div class="achievements-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+                {% for user_achievement in user_achievements %}
+                <div class="achievement-item" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--gray-50); border-radius: 0.5rem;">
+                    <span style="font-size: 1.5rem;">{{ user_achievement.achievement.icon }}</span>
+                    <div>
+                        <div style="font-weight: 600; font-size: 0.875rem;">{{ user_achievement.achievement.name }}</div>
+                        <div style="font-size: 0.75rem; color: var(--gray-500);">
+                            {{ user_achievement.earned_at|date:"M d, Y" }}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Goal Modal -->
+<div id="goalModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="card animate-scaleIn" style="max-width: 400px; width: 90%; margin: 0 auto;">
+        <div class="card-header">
+            <h3 class="card-title" id="goalModalTitle">Create Goal</h3>
+        </div>
+        <form method="POST" id="goalForm" action="{% url 'tracker:goals' %}">
+            {% csrf_token %}
+            <div class="card-body">
+                <input type="hidden" name="goal_type" id="goalType">
+                <input type="hidden" name="goal_id" id="goalId">
+                
+                <div class="form-group">
+                    <label class="form-label">Goal Type</label>
+                    <select class="form-control" name="goal_type_select" id="goalTypeSelect" required>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Target Hours</label>
+                    <input type="number" class="form-control" name="hours" id="goalHours" min="0" max="168" step="1" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Additional Minutes</label>
+                    <input type="number" class="form-control" name="minutes" id="goalMinutes" min="0" max="59" value="0">
+                </div>
+            </div>
+            <div class="card-footer" style="display: flex; gap: 1rem;">
+                <button type="button" class="btn btn-outline w-100" onclick="closeGoalModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary w-100">Save Goal</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="card animate-scaleIn" style="max-width: 400px; width: 90%; margin: 0 auto;">
+        <div class="card-header">
+            <h3 class="card-title">Delete Goal</h3>
+        </div>
+        <div class="card-body text-center">
+            <p>Are you sure you want to delete this goal? This action cannot be undone.</p>
+        </div>
+        <div class="card-footer" style="display: flex; gap: 1rem;">
+            <button type="button" class="btn btn-outline w-100" onclick="closeDeleteModal()">Cancel</button>
+            <form method="POST" id="deleteForm" style="flex: 1;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger w-100">Delete</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function showCreateGoalModal() {
+        document.getElementById('goalModalTitle').textContent = 'Create New Goal';
+        document.getElementById('goalType').value = '';
+        document.getElementById('goalId').value = '';
+        document.getElementById('goalHours').value = '';
+        document.getElementById('goalMinutes').value = '0';
+        document.getElementById('goalModal').style.display = 'flex';
+    }
+    
+    function editGoal(type, goalId) {
+        document.getElementById('goalModalTitle').textContent = 'Edit ' + type.charAt(0).toUpperCase() + type.slice(1) + ' Goal';
+        document.getElementById('goalType').value = type;
+        document.getElementById('goalId').value = goalId;
+        document.getElementById('goalTypeSelect').value = type;
+        // Note: In a real implementation, you would fetch the goal data and populate the fields
+        document.getElementById('goalModal').style.display = 'flex';
+    }
+    
+    function deleteGoal(goalId) {
+        document.getElementById('deleteForm').action = '{% url "tracker:delete_goal" 0 %}'.replace('0', goalId);
+        document.getElementById('deleteModal').style.display = 'flex';
+    }
+    
+    function closeGoalModal() {
+        document.getElementById('goalModal').style.display = 'none';
+    }
+    
+    function closeDeleteModal() {
+        document.getElementById('deleteModal').style.display = 'none';
+    }
+    
+    // Close modals when clicking outside
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeGoalModal();
+                closeDeleteModal();
+            }
+        });
+    });
+</script>
+{% endblock %}
